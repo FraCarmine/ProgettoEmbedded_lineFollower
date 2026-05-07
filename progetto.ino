@@ -205,19 +205,19 @@ void drive(){
   tcaSelect(CENTRO);
   tcs[CENTRO].getRawData(&r[CENTRO], &g[CENTRO], &b[CENTRO], &c[CENTRO]);
   String coloreCentro = riconosciColore(r[CENTRO], g[CENTRO], b[CENTRO], c[CENTRO]);
-  Serial.printf("[CENTRO] C:%d R:%d G:%d B:%d → %s\n",c[CENTRO], r[CENTRO], g[CENTRO], b[CENTRO], coloreCentro.c_str());
+  Serial.printf("[CENTRO] C:%d R:%d G:%d B:%d => %s\n",c[CENTRO], r[CENTRO], g[CENTRO], b[CENTRO], coloreCentro.c_str());
 
   // --- LEGGO SX ---
   tcaSelect(SX);
   tcs[SX].getRawData(&r[SX], &g[SX], &b[SX], &c[SX]);
   String coloreSinistro = riconosciColore(r[SX], g[SX], b[SX], c[SX]);
-  Serial.printf("[SX]     C:%d R:%d G:%d B:%d → %s\n", c[SX], r[SX], g[SX], b[SX], coloreSinistro.c_str());
+  Serial.printf("[SX]     C:%d R:%d G:%d B:%d => %s\n", c[SX], r[SX], g[SX], b[SX], coloreSinistro.c_str());
 
   // --- LEGGO DX ---
   tcaSelect(DX);
   tcs[DX].getRawData(&r[DX], &g[DX], &b[DX], &c[DX]);
   String coloreDestro = riconosciColore(r[DX], g[DX], b[DX], c[DX]);
-  Serial.printf("[DX]     C:%d R:%d G:%d B:%d → %s\n", c[DX], r[DX], g[DX], b[DX], coloreDestro.c_str());
+  Serial.printf("[DX]     C:%d R:%d G:%d B:%d => %s\n", c[DX], r[DX], g[DX], b[DX], coloreDestro.c_str());
 
   //aggiorno mqtt con i dati
   colAtt = "SX:" + coloreSinistro + " CX:" + coloreCentro + " DX:" + coloreDestro;
@@ -280,9 +280,9 @@ void drive(){
   // Più il PID sterza, più sottraggo velocità alla base per curvare
   int velocitaBaseDinamica = velocitaMax - abs(pidOutput);
   if(pidOutput == 0){
-    velocitaBaseDinamica = 140;
+    velocitaBaseDinamica = 140; 
   }
-  if (velocitaBaseDinamica < 0) {
+  if (velocitaBaseDinamica < 0) {//perchè sennò sfora
       velocitaBaseDinamica = 0; 
   }
 
@@ -377,7 +377,6 @@ void reconnect(){
   disableMqttTask();
   if (WiFi.status() != WL_CONNECTED) {
     WiFi.begin(SSID, PASSWORD);
-    // Nota: Non mettiamo delay, il TaskScheduler tornerà qui tra 3 secondi
   } else if (!mqttClient.connected()) {
     mqttConnect();
   }
