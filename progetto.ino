@@ -182,7 +182,12 @@ void loop() {
 }
 
 void mqttRicezione(){
-  mqttClient.loop();
+  if (!mqttClient.connected()) {
+      tReconnect.enable();
+  }
+  else{
+    mqttClient.loop();
+  }  
 }
 
 void mqttPublish(){
@@ -193,7 +198,7 @@ void mqttPublish(){
 
 void drive(){
   uint16_t r[3], g[3], b[3], c[3];
-  double erroreAttuale = 0;
+  float erroreAttuale = 0.0f;
 
 
   // --- LEGGO CENTRO ---
@@ -297,7 +302,7 @@ void impostaMotori(int velSx, int velDx) {
   velDx = constrain(velDx, -255, 255);
   //anti stallo
   int pwmSx = abs(velSx);
-  if (pwmSx > 0 && pwmSx < minPWM) pwmSx = minPWM; // Se è troppo debole, spingilo al minimo
+  if (pwmSx > 0 && pwmSx < minPWM) pwmSx = minPWM; // Se è troppo debole spingilo al minimo
   
   int pwmDx = abs(velDx);
   if (pwmDx > 0 && pwmDx < minPWM) pwmDx = minPWM; // Idem per la destra
@@ -327,13 +332,12 @@ void impostaMotori(int velSx, int velDx) {
 
 String riconosciColore(uint16_t r, uint16_t g, uint16_t b, uint16_t c) {
   
-  // 1. Protezione buio totale
+
   if (c == 0) return "nero";
 
-  // --- 2. TRUCCO DEL RAPPORTO (Perfetto per mezze linee e ombre) ---
+
   float rapportoRG = (float)r / (float)g;
 
-  // Se il Rosso è almeno 1.45 volte il Verde, è per forza il nostro nastro!
   if (rapportoRG >= 1.45f) {
       return "rosso";
   }
@@ -346,7 +350,7 @@ String riconosciColore(uint16_t r, uint16_t g, uint16_t b, uint16_t c) {
   if (percG >= VERDE_PERC_G_MIN && percG > percR && percG > percB) return "verde";
   if (percB >= BLU_PERC_B_MIN  && percB > percR && percB > percG) return "blu";
 
-  // 4. SOLO ALLA FINE: se non è nessun colore, decido tra bianco o nero
+
   if (c >= SOGLIA_BIANCO_MIN) {
       return "bianco";
   }
@@ -360,29 +364,25 @@ String riconosciColore(uint16_t r, uint16_t g, uint16_t b, uint16_t c) {
 
 //---------------------------------------wifi---------------------
 void reconnect(){
-  static bool wifiTrying= false;
-  if(WiFi.status() != WL_CONNECTED){
-     if(!wifiTrying){
-        WiFi.begin(SSID, PASSWORD);
-        wifiTrying = true;
-    }
-    disableMqttTask();
+  static bool wifiTrying = false;
+  if (WiFi.status() == WL_CONNECTED && mqttClient.connected()) {
+    enableMqttTask();
+    tDrive.enable();
+    tReconnect.disable();
+    return;
   }
-  else{
-    wifiTrying = false;
-    enableMqttTask(); //in caso si scolleghi il wifi ma rimanga attaccato mqtt disabilito task ma poi si ricollega subito e rimanevo con task disabilitate
-    if(!mqttClient.connected()){
-      /*for(int i=0; i<5 && (!mqttConnect())){
-        delay(10); //@TODO valutare il tempo del delay e anche se disabilitare la task del drive e fermare i motori
-      }*/
-      if(mqttConnect()){
-        enableMqttTask();   //se andato a buon fine riabilito le task
-      }else{
-        disableMqttTask(); //wifi si e mqtt no
-      }
-    }
+  //qualcosa non va
+  tDrive.disable();
+  impostaMotori(0, 0);
+  disableMqttTask();
+  if (WiFi.status() != WL_CONNECTED) {
+    WiFi.begin(SSID, PASSWORD);
+    // Nota: Non mettiamo delay, il TaskScheduler tornerà qui tra 3 secondi
+  } else if (!mqttClient.connected()) {
+    mqttConnect();
   }
 }
+
 
 void disableMqttTask(){
   if (tMqttRicezione.isEnabled()) tMqttRicezione.disable(); // se abilitato la disabilito
@@ -454,11 +454,25 @@ void mqttCallback(char* topic, byte* payload, unsigned int length){
   msg.trim();
 
   if(strcmp(topic, "macchina/cmd/linea") == 0){
-    if(!msg.equalsIgnoreCase(coloreTarget)){
-      coloreTarget = msg;
-      ultimaDirezione = "destra";
+    
+    int indiceVirgola = msg.indexOf(','); // Cerco la virgola
+
+    if(indiceVirgola != -1) {
+      //ha mandato sia colore che direzione
+      //prendo fino alla virgola
+      String nuovoColore = msg.substring(0, indiceVirgola);
+      String nuovaDirezione = msg.substring(indiceVirgola + 1);
+      
+      nuovoColore.trim();
+      nuovaDirezione.trim();
+      
+      coloreTarget = nuovoColore;
+      ultimaDirezione = nuovaDirezione;
+    } else {
+        //mandato solo il colore
+        coloreTarget = msg;
+      }
     }
-  }
   else if(strcmp(topic, "macchina/cmd/stop") == 0){
     if(msg.equalsIgnoreCase("true")){
       impostaMotori(0, 0);
