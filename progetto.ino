@@ -65,10 +65,10 @@ void impostaMotori(int velSx, int velDx); // Prototipo funzione motori
 
 //------------------- Configurazione Wi-Fi------------------------------------
 
-#define SSID "R2-D2 7398"
-#define PASSWORD "42Bx9!21"
+#define SSID "SSID"
+#define PASSWORD "PASSWORD"
 #define PORT 1883
-#define SERVER "192.168.137.1"
+#define SERVER "IP"
 
 WiFiClient espClient;          // Oggetto WiFi
 PubSubClient mqttClient(espClient); 
