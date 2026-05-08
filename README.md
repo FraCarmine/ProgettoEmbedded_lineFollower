@@ -1,5 +1,5 @@
 # ProgettoEmbedded_lineFollower
-Il progetto è ideato per realizzare un veicolo a guida autonoma basato su ESP32, in grado di seguire percorsi tracciati da linee colorate. Il sistema acquisisce dati da sensori ottici, elabora l'errore di traiettoria tramite un algoritmo PID e pilota i motori. Le funzioni di telemetria e taratura parametri (live-tuning) sono gestite a distanza tramite Wi-Fi e protocollo MQTT.
+Il progetto è ideato per realizzare un veicolo a guida autonoma basato su ESP32, in grado di seguire percorsi tracciati da linee colorate. Il sistema acquisisce dati da sensori ottici, calcola l'errore di traiettoria, genera l'azione di correzione tramite un algoritmo PID e pilota i motori. Le funzioni di telemetria e taratura parametri (live-tuning) sono gestite a distanza tramite Wi-Fi e protocollo MQTT.
 
 ## Componenti:
 * **Microcontrollore:** ESP32
